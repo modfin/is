@@ -13,6 +13,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 )
 
 func check(err error) {
@@ -57,78 +59,103 @@ func RandStringRunes(n int) string {
 
 func main() {
 
+	var ascii = true
 	var nokey bool
 	var noclip bool
+	var filepath string
 	var filename string
 
 	app := &cli.App{
 		Name:  "qs",
-		Usage: "Quick creates a local web url to share text from stdin or file",
+		Usage: "Quick Share creates a local web server in order to share text from stdin or a file",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  "nokey",
 				Usage: "no access key is needed to view content ",
 			},
 			&cli.BoolFlag{
-				Name:    "noclip",
-				Usage:   "do not copy url to clipboard",
+				Name:  "noclip",
+				Usage: "do not copy url to clipboard",
 			},
 			&cli.StringFlag{
 				Name:    "file",
 				Aliases: []string{"f"},
-				Usage:   "read data from file",
+				Usage:   "the file specified to be shared",
+			},
+			&cli.BoolFlag{
+				Name:    "ascii",
+				Aliases: []string{"a"},
+				Usage:   "will treat a file as text input and display it on the web, just as for std in",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			nokey = c.Bool("nokey")
 			noclip = c.Bool("noclip")
-			filename = c.String("file")
+			filepath = c.String("file")
+			if filepath != "" {
+				ascii = c.Bool("ascii")
+			}
 			return nil
 		},
 	}
 	err := app.Run(os.Args)
 	check(err)
 
-	for _, a := range os.Args{
-		if a == "help" || a == "--help" || a == "-h"{
+	for _, a := range os.Args {
+		if a == "help" || a == "--help" || a == "-h" {
 			os.Exit(0)
 		}
 	}
-
 
 	var key string
 	if !nokey {
 		key = RandStringRunes(16)
 	}
 
-	var file io.Reader = os.Stdin
-	var closer = func() {}
-	if len(filename) > 0 {
-		f, err := os.Open(filename)
+	var text string
+	if ascii {
+		var file io.Reader = os.Stdin
+		var closer = func() {}
+		if len(filepath) > 0 {
+			f, err := os.Open(filepath)
+			check(err)
+			closer = func() { _ = f.Close() }
+			file = f
+		}
+		b, err := ioutil.ReadAll(file)
 		check(err)
-		closer =  func(){_ = f.Close()}
-		file = f
+		closer()
+		text = string(b)
 	}
 
-	b, err := ioutil.ReadAll(file)
-	check(err)
-	closer()
 
-	text := string(b)
+	filename = fmt.Sprintf("ql_%v.txt", time.Now())
+	if filepath != "" {
+		parts := strings.Split(filepath, "/")
+		filename = parts[len(parts)-1]
+	}
+
+	if !ascii{
+		text = filename
+	}
 
 	ip := GetOutboundIP()
 	port, err := freeport.GetFreePort()
 	check(err)
 
+	u := fmt.Sprintf("http://%s:%d?key=%s", ip, port, key)
+	if key == "" {
+		u = fmt.Sprintf("http://%s:%d", ip, port)
+	}
+
+
 	htmltmpl, err := template.New("name").Parse(tmpl)
 	check(err)
 
-	u := fmt.Sprintf("http://%s:%d?key=%s\n", ip, port, key)
-	if key == "" {
-		u = fmt.Sprintf("http://%s:%d\n", ip, port)
-	}
+
 	fmt.Println("Avalible at", u)
 	if !noclip {
+		fmt.Println(" and copied to clipboard")
 		_ = clipboard.WriteAll(u)
 	}
 
@@ -143,13 +170,51 @@ func main() {
 			return
 		}
 
+		if r.URL.Path == "/download" {
+			fmt.Println("Download", filename)
+			w.Header().Set("content-type", "application/octet-stream")
+			w.Header().Set("content-disposition", fmt.Sprintf("filename=\"%s\"", filename))
+
+			if filepath == ""{
+				_, err = w.Write([]byte(text))
+				check(err)
+				return
+			}
+
+			f, err := os.Open(filepath)
+			check(err)
+
+			buf := make([]byte, 1024)
+			for {
+				// read a chunk
+				n, err := f.Read(buf)
+				if err != nil && err != io.EOF {
+					check(err)
+				}
+				if n == 0 {
+					break
+				}
+
+				// write a chunk
+				if _, err := w.Write(buf[:n]); err != nil {
+					check(err)
+				}
+			}
+		}
+
 		if r.URL.Path == "/raw" {
 			_, _ = w.Write([]byte(text))
 			return
+
 		}
 
-		_ =htmltmpl.Execute(w, text)
+		_ = htmltmpl.Execute(w, map[string]interface{}{
+			"text": text,
+			"ascii": ascii,
+			"key": key,
+			})
 	})
+	fmt.Println()
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 
 }
@@ -165,17 +230,19 @@ var tmpl = `
 			<div class="card" style="display: inline-block; text-align: left; min-width: 152px;">
 			  <div class="card-body">
 				<div style="position: absolute; top: -30px; left:0; min-width: 153px;">
-					<button id="copy" style="font-size: 10px;" 
-					class="btn btn-sm btn-outline-secondary" 
-					data-clipboard-action="copy" 
-					data-clipboard-target="#content">
-						Copy
-					</button>
-					<a  class="btn btn-sm btn-outline-secondary" href="javascript:raw()" style="font-size: 10px;">Raw</a>
-					<a id="download" class="btn btn-sm btn-outline-secondary"  style="font-size: 10px;">Download</a>
+					{{if index . "ascii"}}
+						<button id="copy" style="font-size: 10px;" 
+						class="btn btn-sm btn-outline-secondary" 
+						data-clipboard-action="copy" 
+						data-clipboard-target="#content">
+							Copy
+						</button>
+						<a href="/raw?key={{index . "key"}}" class="btn btn-sm btn-outline-secondary"  style="font-size: 10px;">Raw</a>
+					{{end}}
+					<a href="/download?key={{index . "key"}}" class="btn btn-sm btn-outline-secondary"  style="font-size: 10px;">Download</a>
 				</div>
 				
-				<pre id="content" style="margin: 0">{{.}}</pre>
+				<pre id="content" style="margin: 0">{{index . "text"}}</pre>
 				
 			
 			  </div>
@@ -186,17 +253,6 @@ var tmpl = `
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
 <script>
 	new ClipboardJS('#copy');
-
-	var fileName = 'qs_'+ new Date().toISOString() +'.txt';
-	var fileContent = document.getElementById('content').innerText;
-	var myFile = new Blob([fileContent], {type: 'text/plain'});
-	window.URL = window.URL || window.webkitURL;
-	document.getElementById('download').setAttribute('href', window.URL.createObjectURL(myFile));
-	document.getElementById('download').setAttribute('download', fileName);
-	
-	function raw() {
-	  window.location.pathname = "/raw"
-	}
 </script>
 
 </html>
