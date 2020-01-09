@@ -17,7 +17,8 @@ import (
 
 func check(err error) {
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
@@ -62,7 +63,7 @@ func main() {
 
 	app := &cli.App{
 		Name:  "qs",
-		Usage: "Quick creates a local url to share text from stdin",
+		Usage: "Quick creates a local web url to share text from stdin or file",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  "nokey",
