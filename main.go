@@ -78,21 +78,19 @@ func main() {
 				Name:  "noclip",
 				Usage: "do not copy url to clipboard",
 			},
-			&cli.StringFlag{
-				Name:    "file",
-				Aliases: []string{"f"},
-				Usage:   "the file specified to be shared",
-			},
 			&cli.BoolFlag{
 				Name:    "ascii",
 				Aliases: []string{"a"},
 				Usage:   "will treat a file as text input and display it on the web, just as for std in",
 			},
 		},
+		UsageText: "echo \"foo bar\" | qs [global options]\n   qs [global options] [filename]",
 		Action: func(c *cli.Context) error {
+
 			nokey = c.Bool("nokey")
 			noclip = c.Bool("noclip")
-			filepath = c.String("file")
+
+			filepath = c.Args().First()
 			if filepath != "" {
 				ascii = c.Bool("ascii")
 			}
@@ -129,14 +127,13 @@ func main() {
 		text = string(b)
 	}
 
-
-	filename = fmt.Sprintf("ql_%v.txt", time.Now())
+	filename = fmt.Sprintf("qs_%v.txt", time.Now())
 	if filepath != "" {
 		parts := strings.Split(filepath, "/")
 		filename = parts[len(parts)-1]
 	}
 
-	if !ascii{
+	if !ascii {
 		text = filename
 	}
 
@@ -149,10 +146,8 @@ func main() {
 		u = fmt.Sprintf("http://%s:%d", ip, port)
 	}
 
-
 	htmltmpl, err := template.New("name").Parse(tmpl)
 	check(err)
-
 
 	fmt.Println("Avalible at", u)
 	if !noclip {
@@ -176,7 +171,7 @@ func main() {
 			w.Header().Set("content-type", "application/octet-stream")
 			w.Header().Set("content-disposition", fmt.Sprintf("filename=\"%s\"", filename))
 
-			if filepath == ""{
+			if filepath == "" {
 				_, err = w.Write([]byte(text))
 				check(err)
 				return
@@ -210,12 +205,12 @@ func main() {
 		}
 
 		_ = htmltmpl.Execute(w, map[string]interface{}{
-			"text": text,
-			"ascii": ascii,
-			"key": key,
+			"text":      text,
+			"ascii":     ascii,
+			"key":       key,
 			"bootstrap": template.CSS(assets.CSSBootstrap),
 			"clipboard": template.JS(assets.JSClipboard),
-			})
+		})
 	})
 	fmt.Println()
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
