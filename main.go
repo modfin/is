@@ -70,7 +70,6 @@ func main() {
 			},
 			&cli.BoolFlag{
 				Name:    "noclip",
-				Aliases: []string{"n"},
 				Usage:   "do not copy url to clipboard",
 			},
 			&cli.StringFlag{
@@ -86,8 +85,15 @@ func main() {
 			return nil
 		},
 	}
-
 	err := app.Run(os.Args)
+	check(err)
+
+	for _, a := range os.Args{
+		if a == "help" || a == "--help" || a == "-h"{
+			os.Exit(0)
+		}
+	}
+
 
 	var key string
 	if !nokey {
@@ -95,15 +101,17 @@ func main() {
 	}
 
 	var file io.Reader = os.Stdin
+	var closer = func() {}
 	if len(filename) > 0 {
 		f, err := os.Open(filename)
 		check(err)
-		defer f.Close()
+		closer =  func(){_ = f.Close()}
 		file = f
 	}
 
 	b, err := ioutil.ReadAll(file)
 	check(err)
+	closer()
 
 	text := string(b)
 
@@ -130,17 +138,16 @@ func main() {
 		vals := r.URL.Query()
 		if vals.Get("key") != key {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("bad key"))
+			_, _ = w.Write([]byte("bad key"))
 			return
 		}
 
 		if r.URL.Path == "/raw" {
-			w.Write([]byte(text))
+			_, _ = w.Write([]byte(text))
 			return
 		}
 
-
-		htmltmpl.Execute(w, text)
+		_ =htmltmpl.Execute(w, text)
 	})
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 
