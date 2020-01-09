@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"qs/assets"
 	"strings"
 	"time"
 )
@@ -212,6 +213,8 @@ func main() {
 			"text": text,
 			"ascii": ascii,
 			"key": key,
+			"bootstrap": template.CSS(assets.CSSBootstrap),
+			"clipboard": template.JS(assets.JSClipboard),
 			})
 	})
 	fmt.Println()
@@ -219,10 +222,12 @@ func main() {
 
 }
 
-var tmpl = `
+const tmpl = `
 <html>
 <head>
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+<style type="text/css">
+{{ index . "bootstrap" }}
+</style>
 </head>
 	<h1 style="text-align: center; padding: 30px">Quick Share</h1>
 	<div style=" padding-top: 30px">
@@ -250,7 +255,9 @@ var tmpl = `
 		</div> 
     </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
+<script>
+	{{index . "clipboard"}}
+</script>
 <script>
 	new ClipboardJS('#copy');
 </script>
