@@ -1,4 +1,4 @@
-module qs
+module github.com/crholm/qs
 
 go 1.13
 

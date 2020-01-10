@@ -1,5 +1,47 @@
 package assets
 
+const Template = `
+<html>
+<head>
+<style type="text/css">
+{{ index . "bootstrap" }}
+</style>
+</head>
+	<h1 style="text-align: center; padding: 30px">Quick Share</h1>
+	<div style=" padding-top: 30px">
+  		<div style="text-align: center">
+			<div class="card" style="display: inline-block; text-align: left; min-width: 152px;">
+			  <div class="card-body">
+				<div style="position: absolute; top: -30px; left:0; min-width: 153px;">
+					{{if index . "ascii"}}
+						<button id="copy" style="font-size: 10px;" 
+						class="btn btn-sm btn-outline-secondary" 
+						data-clipboard-action="copy" 
+						data-clipboard-target="#content">
+							Copy
+						</button>
+						<a href="/raw?key={{index . "key"}}" class="btn btn-sm btn-outline-secondary"  style="font-size: 10px;">Raw</a>
+					{{end}}
+					<a href="/download?key={{index . "key"}}" class="btn btn-sm btn-outline-secondary"  style="font-size: 10px;">Download</a>
+				</div>
+				
+				<pre id="content" style="margin: 0">{{index . "text"}}</pre>
+				
+			
+			  </div>
+			</div>
+		</div> 
+    </div>
+</div>
+<script>
+	{{index . "clipboard"}}
+</script>
+<script>
+	new ClipboardJS('#copy');
+</script>
+
+</html>
+`
 
 const JSClipboard = `/*!
  * clipboard.js v2.0.4
