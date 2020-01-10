@@ -10,9 +10,9 @@ const Template = `
 	<h1 style="text-align: center; padding: 30px">Quick Share</h1>
 	<div style=" padding-top: 30px">
   		<div style="text-align: center">
-			<div class="card" style="display: inline-block; text-align: left; min-width: 152px;">
+			<div class="card" style="display: inline-block; text-align: left; min-width: 153px;">
 			  <div class="card-body">
-				<div style="position: absolute; top: -30px; left:0; min-width: 153px;">
+				<div style="position: absolute; top: -30px; left:0; overflow-x: visible; white-space: nowrap">
 					{{if index . "ascii"}}
 						<button id="copy" style="font-size: 10px;" 
 						class="btn btn-sm btn-outline-secondary" 

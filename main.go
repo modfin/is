@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/atotto/clipboard"
+	"github.com/crholm/qs/assets"
 	"github.com/phayes/freeport"
 	"github.com/urfave/cli/v2"
 	"html/template"
@@ -13,7 +14,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"github.com/crholm/qs/assets"
 	"strings"
 	"time"
 )
