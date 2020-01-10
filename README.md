@@ -26,9 +26,29 @@ GLOBAL OPTIONS:
 **Usage**
 ```bash
 $ echo A string to share | qs
-Avalible at http://192.168.1.10:37381?key=Ys1NZfzTTjHGMmaE
+Avalible at http://192.168.1.90:33361?key=tvfrMDT7nalI3zpn
+  curl -o "qs_2020-01-10T10:40:51+01:00.txt" "http://192.168.1.90:33361/download?key=tvfrMDT7nalI3zpn"
+  and copied url to clipboard
 
-$ qs file.txt
-Avalible at http://192.168.1.10:37381?key=Ys1NZfzTTjHGMmaE
+$ qs main.go 
+  Avalible at http://192.168.1.90:36437?key=d5DZptt3pAopFh47
+    curl -o "main.go" "http://192.168.1.90:36437/download?key=d5DZptt3pAopFh47"
+    and copied url to clipboard
+
+
+
+## Will terminat the server after first requet
+
+$ echo A string to share | qs -o
+Avalible at http://192.168.1.90:41785?key=G3gPL9RmhEvCPEH4
+  curl -o "qs_2020-01-10T10:42:07+01:00.txt" "http://192.168.1.90:41785/download?key=G3gPL9RmhEvCPEH4"
+  and copied curl to clipboard
+
+$ qs -o main.go 
+Avalible at http://192.168.1.90:35627?key=buieogrUSCeRUOTK
+  curl -o "main.go" "http://192.168.1.90:35627/download?key=buieogrUSCeRUOTK"
+  and copied curl to clipboard
+
+
 
 ```
