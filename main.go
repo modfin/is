@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -63,6 +64,7 @@ func main() {
 	var ascii = true
 	var nokey bool
 	var once bool
+	var oncemux sync.Mutex
 	var noclip bool
 	var filepath string
 	var filename string
@@ -177,6 +179,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
 		if once {
+			oncemux.Lock()
 			go func() {
 				<- r.Context().Done()
 				fmt.Println("terminating after first request")
