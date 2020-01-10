@@ -159,19 +159,22 @@ func main() {
 	htmltmpl, err := template.New("name").Parse(assets.Template)
 	check(err)
 
-	fmt.Println("Avalible at", u)
+	fmt.Print("Avalible ")
+	if once {
+		fmt.Print("once ")
+	}
+	fmt.Println("at")
+	fmt.Println(" ", u)
 	fmt.Println(" ", curl)
 	if !noclip {
-
 		if once {
-			fmt.Print("  ", "and copied curl ")
+			fmt.Print("and curl ")
 			_ = clipboard.WriteAll(curl)
 		} else {
-			fmt.Print("  ", "and copied url ")
+			fmt.Print("and url ")
 			_ = clipboard.WriteAll(u)
 		}
-		fmt.Println("to clipboard")
-
+		fmt.Println("is copied to clipboard")
 	}
 	fmt.Println()
 
