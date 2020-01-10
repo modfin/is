@@ -26,7 +26,7 @@ func check(err error) {
 	}
 }
 
-func GetOutboundIP() net.IP {
+func outboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		log.Fatal(err)
@@ -38,7 +38,7 @@ func GetOutboundIP() net.IP {
 	return localAddr.IP
 }
 
-func RandStringRunes(n int) string {
+func randString(n int) string {
 	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 
 	getint := func() int {
@@ -87,9 +87,9 @@ func main() {
 				Usage:   "will treat a file as text input and display it on the web, just as for std in",
 			},
 			&cli.BoolFlag{
-				Name:  "once",
+				Name:    "once",
 				Aliases: []string{"o"},
-				Usage: "terminates the server after first page load, so things dont hang around (copies curl command to clipboard)",
+				Usage:   "terminates the server after first page load, so things dont hang around (copies curl command to clipboard)",
 			},
 		},
 		UsageText: "echo \"foo bar\" | qs [global options]\n   qs [global options] [filename]",
@@ -116,7 +116,7 @@ func main() {
 
 	var key string
 	if !nokey {
-		key = RandStringRunes(16)
+		key = randString(16)
 	}
 
 	var text string
@@ -145,7 +145,7 @@ func main() {
 		text = filename
 	}
 
-	ip := GetOutboundIP()
+	ip := outboundIP()
 	port, err := freeport.GetFreePort()
 	check(err)
 
@@ -166,12 +166,11 @@ func main() {
 		if once {
 			fmt.Print("  ", "and copied curl ")
 			_ = clipboard.WriteAll(curl)
-		}else{
+		} else {
 			fmt.Print("  ", "and copied url ")
 			_ = clipboard.WriteAll(u)
 		}
-		fmt.Println( "to clipboard")
-
+		fmt.Println("to clipboard")
 
 	}
 	fmt.Println()
@@ -181,7 +180,7 @@ func main() {
 		if once {
 			oncemux.Lock()
 			go func() {
-				<- r.Context().Done()
+				<-r.Context().Done()
 				fmt.Println("terminating after first request")
 				os.Exit(0)
 			}()
@@ -229,7 +228,6 @@ func main() {
 			"clipboard": template.JS(assets.JSClipboard),
 		})
 	})
-
 
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 
