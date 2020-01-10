@@ -23,6 +23,8 @@ GLOBAL OPTIONS:
                 std in (default: false)
    --once, -o   terminates the server after first page load, so things dont hang around 
                 (copies curl command to clipboard) (default: false)
+   --ngrok, -n  starts an ngrok instance linking the snippet to it, see https://ngrok.com/. 
+                Make sure to have it in your $PATH (default: false)
    --help, -h   show help (default: false)
 ```
 
