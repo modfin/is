@@ -18,7 +18,8 @@ GLOBAL OPTIONS:
    --nokey      no access key is needed to view content  (default: false)
    --noclip     do not copy url to clipboard (default: false)
    --ascii, -a  will treat a file as text input and display it on the web, just as for std in (default: false)
-   --help, -h   show help (default: false)
+   --once, -o   terminates the server after first page load, so things dont hang around (copies curl command to clipboard) (default: false)
+   --help, -h   show help (default: false
 ```
 
 
