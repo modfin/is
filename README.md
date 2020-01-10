@@ -1,4 +1,4 @@
-# QS - Quick Share
+# qs - Quick Share
 Share text snippets and files on your local network through http
 
 ```bash
