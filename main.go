@@ -71,7 +71,7 @@ func main() {
 
 	app := &cli.App{
 		Name:  "qs",
-		Usage: "Quick Share creates a local web server in order to share text from stdin or a file",
+		Usage: "Quick Share creates a local web server in order to share text snippets and files on your local network through http",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  "nokey",
