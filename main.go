@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/atotto/clipboard"
 	"github.com/crholm/qs/assets"
+	"github.com/crholm/qs/ngrok"
 	"github.com/phayes/freeport"
 	"github.com/urfave/cli/v2"
 	"html/template"
@@ -64,6 +65,7 @@ func main() {
 	var ascii = true
 	var nokey bool
 	var once bool
+	var ungrok bool
 	var oncemux sync.Mutex
 	var noclip bool
 	var filepath string
@@ -91,6 +93,11 @@ func main() {
 				Aliases: []string{"o"},
 				Usage:   "terminates the server after first page load, so things dont hang around (copies curl command to clipboard)",
 			},
+			&cli.BoolFlag{
+				Name:    "ngrok",
+				Aliases: []string{"n"},
+				Usage:   "starts an ngrok instance linking the snippet to it, see https://ngrok.com/. Make sure to have it in your $PATH",
+			},
 		},
 		UsageText: "echo \"foo bar\" | qs [global options]\n   qs [global options] [filename]",
 		Action: func(c *cli.Context) error {
@@ -98,6 +105,7 @@ func main() {
 			nokey = c.Bool("nokey")
 			noclip = c.Bool("noclip")
 			once = c.Bool("once")
+			ungrok = c.Bool("ngrok")
 			filepath = c.Args().First()
 			if filepath != "" {
 				ascii = c.Bool("ascii")
@@ -231,6 +239,10 @@ func main() {
 			"clipboard": template.JS(assets.JSClipboard),
 		})
 	})
+
+	if ungrok {
+		ngrok.Start(filename, key, port)
+	}
 
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 
