@@ -6,7 +6,8 @@ $ go get github.com/crholm/qs
 
 $ qs --help  
 NAME:
-   qs - Quick Share creates a local web server in order to share text snippets and files on your local network through http
+   qs - Quick Share creates a local web server in order to share text snippets and files 
+        on your local network through http
 
 USAGE:
    echo "foo bar" | qs [global options]
