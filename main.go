@@ -62,6 +62,7 @@ func main() {
 
 	var ascii = true
 	var nokey bool
+	var once bool
 	var noclip bool
 	var filepath string
 	var filename string
@@ -83,13 +84,18 @@ func main() {
 				Aliases: []string{"a"},
 				Usage:   "will treat a file as text input and display it on the web, just as for std in",
 			},
+			&cli.BoolFlag{
+				Name:  "once",
+				Aliases: []string{"o"},
+				Usage: "terminates the server after first page load, so things dont hang around (copies curl command to clipboard)",
+			},
 		},
 		UsageText: "echo \"foo bar\" | qs [global options]\n   qs [global options] [filename]",
 		Action: func(c *cli.Context) error {
 
 			nokey = c.Bool("nokey")
 			noclip = c.Bool("noclip")
-
+			once = c.Bool("once")
 			filepath = c.Args().First()
 			if filepath != "" {
 				ascii = c.Bool("ascii")
@@ -127,7 +133,7 @@ func main() {
 		text = string(b)
 	}
 
-	filename = fmt.Sprintf("qs_%v.txt", time.Now())
+	filename = fmt.Sprintf("qs_%s.txt", time.Now().Format(time.RFC3339))
 	if filepath != "" {
 		parts := strings.Split(filepath, "/")
 		filename = parts[len(parts)-1]
@@ -142,20 +148,41 @@ func main() {
 	check(err)
 
 	u := fmt.Sprintf("http://%s:%d?key=%s", ip, port, key)
+	curl := fmt.Sprintf("curl -o \"%s\" \"http://%s:%d/download?key=%s\"", filename, ip, port, key)
 	if key == "" {
 		u = fmt.Sprintf("http://%s:%d", ip, port)
+		curl = fmt.Sprintf("curl -o \"%s\" \"http://%s:%d/download\"", filename, ip, port)
 	}
 
 	htmltmpl, err := template.New("name").Parse(assets.Template)
 	check(err)
 
 	fmt.Println("Avalible at", u)
+	fmt.Println(" ", curl)
 	if !noclip {
-		fmt.Println(" and copied to clipboard")
-		_ = clipboard.WriteAll(u)
+
+		if once {
+			fmt.Print("  ", "and copied curl ")
+			_ = clipboard.WriteAll(curl)
+		}else{
+			fmt.Print("  ", "and copied url ")
+			_ = clipboard.WriteAll(u)
+		}
+		fmt.Println( "to clipboard")
+
+
 	}
+	fmt.Println()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		if once {
+			go func() {
+				<- r.Context().Done()
+				fmt.Println("terminating after first request")
+				os.Exit(0)
+			}()
+		}
 
 		fmt.Println("Got request from", r.RemoteAddr, r.URL.Path)
 
@@ -180,22 +207,9 @@ func main() {
 			f, err := os.Open(filepath)
 			check(err)
 
-			buf := make([]byte, 1024)
-			for {
-				// read a chunk
-				n, err := f.Read(buf)
-				if err != nil && err != io.EOF {
-					check(err)
-				}
-				if n == 0 {
-					break
-				}
-
-				// write a chunk
-				if _, err := w.Write(buf[:n]); err != nil {
-					check(err)
-				}
-			}
+			_, err = io.Copy(w, f)
+			check(err)
+			return
 		}
 
 		if r.URL.Path == "/raw" {
@@ -212,7 +226,8 @@ func main() {
 			"clipboard": template.JS(assets.JSClipboard),
 		})
 	})
-	fmt.Println()
+
+
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 
 }
