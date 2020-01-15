@@ -59,3 +59,25 @@ Avalible once at
   curl -o "main.go" "http://192.168.1.90:35627/download?key=buieogrUSCeRUOTK"
 and curl is copied to clipboard
 ```
+
+**Examples**
+
+```bash
+$ cat main.go | sq
+Avalible at
+  http://192.168.1.90:33763?key=WtuzSLxPScAzaEDj
+  curl -o "qs_2020-01-15T17:53:05+01:00.txt" "http://192.168.1.90:33763/download?key=WtuzSLxPScAzaEDj"
+and url is copied to clipboard
+
+```
+![example1](example1.png)
+
+```bash 
+$ sq 2019-04-29-100058_3840x1200_scrot.png
+Avalible at
+  http://192.168.1.90:41007?key=eNri9WGWZe5qklf8
+  curl -o "2019-04-29-100058_3840x1200_scrot.png" "http://192.168.1.90:41007/download?key=eNri9WGWZe5qklf8"
+and url is copied to clipboard
+```
+![example0](example0.png)
+

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/atotto/clipboard"
+	"github.com/c2h5oh/datasize"
 	"github.com/crholm/qs/assets"
 	"github.com/crholm/qs/ngrok"
 	"github.com/phayes/freeport"
@@ -62,6 +63,7 @@ func randString(n int) string {
 
 func main() {
 
+	var size string
 	var ascii = true
 	var nokey bool
 	var once bool
@@ -149,8 +151,16 @@ func main() {
 		filename = parts[len(parts)-1]
 	}
 
+	size = datasize.ByteSize(len(text)).HumanReadable()
 	if !ascii {
 		text = filename
+		f, err := os.Open(filepath)
+		check(err)
+		i, err := f.Stat()
+		check(err)
+
+		size = datasize.ByteSize(uint64(i.Size())).HumanReadable()
+		check(f.Close())
 	}
 
 	ip := outboundIP()
@@ -235,7 +245,7 @@ func main() {
 			"text":      text,
 			"ascii":     ascii,
 			"key":       key,
-			"bootstrap": template.CSS(assets.CSSBootstrap),
+			"size":      size,
 			"clipboard": template.JS(assets.JSClipboard),
 		})
 	})
