@@ -65,19 +65,19 @@ and curl is copied to clipboard
 ```bash
 $ cat main.go | sq
 Avalible at
-  http://192.168.1.90:33763?key=WtuzSLxPScAzaEDj
-  curl -o "qs_2020-01-15T17:53:05+01:00.txt" "http://192.168.1.90:33763/download?key=WtuzSLxPScAzaEDj"
+  http://192.168.1.90:43247?key=HO4y0jiacktUPiWl
+  curl -o "qs_2020-01-16T11:42:18+01:00.txt" "http://192.168.1.90:43247/download?key=HO4y0jiacktUPiWl"
 and url is copied to clipboard
 
 ```
-![example1](example1.png)
+![example1](example0.png)
 
 ```bash 
-$ sq 2019-04-29-100058_3840x1200_scrot.png
+$ sq example0.png
 Avalible at
-  http://192.168.1.90:41007?key=eNri9WGWZe5qklf8
-  curl -o "2019-04-29-100058_3840x1200_scrot.png" "http://192.168.1.90:41007/download?key=eNri9WGWZe5qklf8"
+  http://192.168.1.90:40393?key=sGjbagdwqly1AyoS
+  curl -o "example0.png" "http://192.168.1.90:40393/download?key=sGjbagdwqly1AyoS"
 and url is copied to clipboard
 ```
-![example0](example0.png)
+![example0](example1.png)
 
