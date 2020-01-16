@@ -63,7 +63,7 @@ and curl is copied to clipboard
 **Examples**
 
 ```bash
-$ cat main.go | sq
+$ cat main.go | qs
 Avalible at
   http://192.168.1.90:43247?key=HO4y0jiacktUPiWl
   curl -o "qs_2020-01-16T11:42:18+01:00.txt" "http://192.168.1.90:43247/download?key=HO4y0jiacktUPiWl"
@@ -73,7 +73,7 @@ and url is copied to clipboard
 ![example1](example.0.png)
 
 ```bash 
-$ sq example.0.png
+$ qs example.0.png
 Avalible at
   http://192.168.1.90:40393?key=sGjbagdwqly1AyoS
   curl -o "example0.png" "http://192.168.1.90:40393/download?key=sGjbagdwqly1AyoS"
