@@ -70,14 +70,14 @@ Avalible at
 and url is copied to clipboard
 
 ```
-![example1](example0.png)
+![example1](example.0.png)
 
 ```bash 
-$ sq example0.png
+$ sq example.0.png
 Avalible at
   http://192.168.1.90:40393?key=sGjbagdwqly1AyoS
   curl -o "example0.png" "http://192.168.1.90:40393/download?key=sGjbagdwqly1AyoS"
 and url is copied to clipboard
 ```
-![example0](example1.png)
+![example0](example.1.png)
 
