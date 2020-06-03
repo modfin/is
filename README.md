@@ -2,7 +2,7 @@
 Share text snippets and files on your local network through http
 
 ```bash
-$ go get github.com/crholm/qs
+$ go get github.com/itsy-sh/qs
 
 $ qs --help  
 NAME:
