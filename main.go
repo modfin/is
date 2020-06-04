@@ -1,12 +1,14 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"crypto/rand"
 	"fmt"
 	"github.com/atotto/clipboard"
 	"github.com/c2h5oh/datasize"
-	"github.com/itsy-sh/qs/assets"
-	"github.com/itsy-sh/qs/ngrok"
+	"github.com/itsy-sh/is/assets"
+	"github.com/itsy-sh/is/ngrok"
 	"github.com/phayes/freeport"
 	"github.com/urfave/cli/v2"
 	"html/template"
@@ -16,9 +18,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
 	"sync"
 	"time"
+	"unicode"
 )
 
 func check(err error) {
@@ -60,22 +63,36 @@ func randString(n int) string {
 	}
 	return string(b)
 }
+func isAsciiPrintable(s string) bool {
+	for _, r := range s {
+		if !unicode.IsPrint(r) && !unicode.IsSpace(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func filename(path string) string {
+	_, name := filepath.Split(path)
+	return name
+}
 
 func main() {
+	var stdin bool
 
 	var size string
-	var ascii = true
 	var nokey bool
 	var once bool
+	var ascii bool
 	var ungrok bool
 	var oncemux sync.Mutex
 	var noclip bool
-	var filepath string
-	var filename string
+	var filepaths []string
+	var filesizes []string
 
 	app := &cli.App{
-		Name:  "qs",
-		Usage: "Quick Share creates a local web server in order to share text snippets and files on your local network through http",
+		Name:  "is",
+		Usage: "Itsy Share creates a local web server in order to share text snippets and files on your local network through http",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  "nokey",
@@ -84,11 +101,6 @@ func main() {
 			&cli.BoolFlag{
 				Name:  "noclip",
 				Usage: "do not copy url to clipboard",
-			},
-			&cli.BoolFlag{
-				Name:    "ascii",
-				Aliases: []string{"a"},
-				Usage:   "will treat a file as text input and display it on the web, just as for std in",
 			},
 			&cli.BoolFlag{
 				Name:    "once",
@@ -101,18 +113,27 @@ func main() {
 				Usage:   "starts an ngrok instance linking the snippet to it, see https://ngrok.com/. Make sure to have it in your $PATH",
 			},
 		},
-		UsageText: "echo \"foo bar\" | qs [global options]\n   qs [global options] [filename]",
+		UsageText: "echo \"foo bar\" | is [global options]\n   is [global options] [filename]",
 		Action: func(c *cli.Context) error {
 
 			nokey = c.Bool("nokey")
 			noclip = c.Bool("noclip")
 			once = c.Bool("once")
 			ungrok = c.Bool("ngrok")
-			filepath = c.Args().First()
-			if filepath != "" {
-				ascii = c.Bool("ascii")
+			filepaths = c.Args().Slice()
+
+			if len(filepaths) == 0 {
+				stdin = true
+				ascii = true
+			}
+			if len(filepaths) == 1{
+				ascii = true
+			}
+			if len(filepaths) > 1{
+				ascii = false
 			}
 			return nil
+
 		},
 	}
 	err := app.Run(os.Args)
@@ -129,52 +150,74 @@ func main() {
 		key = randString(16)
 	}
 
-	var text string
-	if ascii {
+	if stdin {
 		var file io.Reader = os.Stdin
 		var closer = func() {}
-		if len(filepath) > 0 {
-			f, err := os.Open(filepath)
-			check(err)
-			closer = func() { _ = f.Close() }
-			file = f
-		}
 		b, err := ioutil.ReadAll(file)
 		check(err)
 		closer()
-		text = string(b)
+		f, err := ioutil.TempFile("", "itsy_share_"+time.Now().Format(time.RFC3339))
+		check(err)
+		defer func() {
+			os.Remove(f.Name())
+		}()
+		err = ioutil.WriteFile(f.Name(), b, 660)
+		check(err)
+
+		filepaths = append(filepaths, f.Name())
 	}
 
-	filename = fmt.Sprintf("qs_%s.txt", time.Now().Format(time.RFC3339))
-	if filepath != "" {
-		parts := strings.Split(filepath, "/")
-		filename = parts[len(parts)-1]
-	}
-
-	size = datasize.ByteSize(len(text)).HumanReadable()
-	if !ascii {
-		text = filename
-		f, err := os.Open(filepath)
+	tmppaths := filepaths
+	filepaths = []string{}
+	for i := range tmppaths {
+		path := tmppaths[i]
+		f, err := os.Open(path)
 		check(err)
 		i, err := f.Stat()
 		check(err)
-
-		size = datasize.ByteSize(uint64(i.Size())).HumanReadable()
+		if i.IsDir() {
+			continue
+		}
+		filepaths = append(filepaths, path)
+		filesizes = append(filesizes, datasize.ByteSize(uint64(i.Size())).HumanReadable())
 		check(f.Close())
+	}
+
+	if ascii{
+		f, err := os.Open(filepaths[0])
+		check(err)
+		i, err := f.Stat()
+		check(err)
+		if i.Size() > 40000 { // 40kb
+			ascii = false
+		}
+		check(f.Close())
+	}
+	if ascii {
+		b, err := ioutil.ReadFile(filepaths[0])
+		check(err)
+		ascii = isAsciiPrintable(string(b))
 	}
 
 	ip := outboundIP()
 	port, err := freeport.GetFreePort()
 	check(err)
 
-	u := fmt.Sprintf("http://%s:%d?key=%s", ip, port, key)
-	curl := fmt.Sprintf("curl -o \"%s\" \"http://%s:%d/download?key=%s\"", filename, ip, port, key)
-	if key == "" {
-		u = fmt.Sprintf("http://%s:%d", ip, port)
-		curl = fmt.Sprintf("curl -o \"%s\" \"http://%s:%d/download\"", filename, ip, port)
+	dlname := filename(filepaths[0])
+	if len(filepaths) > 1 {
+		dlname = "itsy_share_bundle" + time.Now().Format(time.RFC3339) + ".tar.gz"
 	}
 
-	htmltmpl, err := template.New("name").Parse(assets.Template)
+	u := fmt.Sprintf("http://%s:%d?key=%s", ip, port, key)
+	curl := fmt.Sprintf("curl -o \"%s\" \"http://%s:%d/download?key=%s\"", dlname, ip, port, key)
+	if key == "" {
+		u = fmt.Sprintf("http://%s:%d", ip, port)
+		curl = fmt.Sprintf("curl -o \"%s\" \"http://%s:%d/download\"", dlname, ip, port)
+	}
+
+	htmltmpl, err := template.New("name").Funcs(template.FuncMap{
+		"filename" : filename,
+	}).Parse(assets.Template)
 	check(err)
 
 	fmt.Print("Avalible ")
@@ -217,33 +260,80 @@ func main() {
 		}
 
 		if r.URL.Path == "/download" {
-			fmt.Println("Download", filename)
-			w.Header().Set("content-type", "application/octet-stream")
-			w.Header().Set("content-disposition", fmt.Sprintf("filename=\"%s\"", filename))
+			fp := filepaths
+			name := dlname
 
-			if filepath == "" {
-				_, err = w.Write([]byte(text))
-				check(err)
-				return
+			specific := r.URL.Query().Get("file")
+			if specific != "" {
+				for _, path := range filepaths {
+					if path == specific {
+						fp = []string{path}
+						name = filename(path)
+					}
+				}
 			}
 
-			f, err := os.Open(filepath)
-			check(err)
+			if len(fp) == 1 {
+				path := fp[0]
 
-			_, err = io.Copy(w, f)
-			check(err)
+				fmt.Println("Download", name)
+				w.Header().Set("content-type", "application/octet-stream")
+				w.Header().Set("content-disposition", fmt.Sprintf("filename=\"%s\"", name))
+
+				f, err := os.Open(path)
+				check(err)
+				_, err = io.Copy(w, f)
+				check(err)
+				check(f.Close())
+			}
+
+			if len(fp) > 1 {
+				fmt.Println("Download", name)
+				w.Header().Set("content-type", "application/octet-stream")
+				w.Header().Set("content-disposition", fmt.Sprintf("filename=\"%s\"", name))
+				zw := gzip.NewWriter(w)
+				zw.Name = dlname
+				zw.ModTime = time.Now()
+				tw := tar.NewWriter(zw)
+				for _, path := range fp {
+					f, err := os.Open(path)
+					check(err)
+					s, err := f.Stat()
+					check(err)
+
+					hdr := &tar.Header{
+						Name: filename(path),
+						Mode: 0600,
+						Size: s.Size(),
+					}
+					err = tw.WriteHeader(hdr)
+					check(err)
+
+					_, err = io.Copy(tw, f)
+					check(err)
+					check(f.Close())
+				}
+				err = tw.Close()
+				check(err)
+				err = zw.Close()
+				check(err)
+			}
+
 			return
 		}
 
-		if r.URL.Path == "/raw" {
-			_, _ = w.Write([]byte(text))
-			return
-
+		var content string
+		if ascii {
+			b, err := ioutil.ReadFile(filepaths[0])
+			check(err)
+			content = string(b)
 		}
 
 		_ = htmltmpl.Execute(w, map[string]interface{}{
-			"text":      text,
+			"filepaths": filepaths,
+			"filesizes": filesizes,
 			"ascii":     ascii,
+			"content": content,
 			"key":       key,
 			"size":      size,
 			"clipboard": template.JS(assets.JSClipboard),
@@ -251,9 +341,10 @@ func main() {
 	})
 
 	if ungrok {
-		ngrok.Start(filename, key, port)
+		ngrok.Start(dlname, key, port)
 	}
 
+	// TODO listen to termination signals...
 	check(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 
 }

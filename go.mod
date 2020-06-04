@@ -1,4 +1,4 @@
-module github.com/itsy-sh/qs
+module github.com/itsy-sh/is
 
 go 1.13
 
