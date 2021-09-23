@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-var reg = regexp.MustCompile("(https://[a-z0-9]+(\\.)([a-z]{2}\\.)?(ngrok.io))")
+var reg = regexp.MustCompile("((https://)([a-f0-9-]{2,})(\\.ngrok\\.io))")
 
 type w struct {
 	filename string
